@@ -74,7 +74,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Content == "!help" {
-		_, err := s.ChannelMessageSend(m.ChannelID, "How may i help?\n '''Options...'''")
+		_, err := s.ChannelMessageSend(m.ChannelID, "How may i help?\n ```Options...```")
 		if err != nil {
 			fmt.Println(err)
 		}
