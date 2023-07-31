@@ -20,9 +20,10 @@ var (
 )
 
 const KuteGoAPIURL = "https://kutego-api-xxxxx-ew.a.run.app"
+const OpenDotaAPIURL = "https://api.opendota.com/api/"
 
 func init() {
-	flag.StringVar(&Token, "t", "MTA5OTg4MjQyNDI4NjA2ODc2Ng.Gcgh7U.IBfK6RiHmN2_o3pysl5njrgDz9TBhLU8TLiAqA", "Bot Token")
+	flag.StringVar(&Token, "t", "", "Bot Token")
 	flag.Parse()
 }
 
@@ -70,6 +71,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// This isn't required in this specific example but it's a good practice.
 	if m.Author.ID == s.State.User.ID {
 		return
+	}
+
+	if m.Content == "!help" {
+		_, err := s.ChannelMessageSend(m.ChannelID, "How may i help?\n '''Options...'''")
+		if err != nil {
+			fmt.Println(err)
+		}
+
 	}
 
 	if m.Content == "!gopher" {
