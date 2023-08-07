@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
+
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
+	opendotaapi "github.com/DiegoGatti/drotabot/OpenDotaApi"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -74,11 +77,42 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Content == "!help" {
-		_, err := s.ChannelMessageSend(m.ChannelID, "How may i help?\n ```Options...```")
+		_, err := s.ChannelMessageSend(m.ChannelID, "How may i help?\n ```Use comands:\n\n!search\n!match\n!player```")
 		if err != nil {
 			fmt.Println(err)
 		}
 
+	}
+
+	if strings.Contains(m.Content, "!search") {
+
+		q := strings.TrimSpace(strings.Replace(m.Content, "!search", "", 1))
+
+		c, err := opendotaapi.NewClientWithResponses("https://api.opendota.com/api")
+		if err != nil {
+			panic(err)
+		}
+
+		var params = opendotaapi.GetSearchParams{
+			Q: q,
+		}
+
+		resp, err := c.GetSearchWithResponse(context.Background(), &params)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(resp.Body)
+
+		var respDecoded []opendotaapi.SearchResponse
+
+		json.Unmarshal(resp.Body, &respDecoded)
+
+		fmt.Println((respDecoded))
+
+		msg := fmt.Sprintf("found %d results.", len(respDecoded))
+
+		s.ChannelMessageSend(m.ChannelID, msg)
 	}
 
 	if m.Content == "!gopher" {
@@ -130,7 +164,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if response.StatusCode == 200 {
 			// Transform our response to a []byte
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			if err != nil {
 				fmt.Println(err)
 			}
