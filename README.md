@@ -5,7 +5,9 @@ my player id 98436229 lets go 1v1 only mid pudge i dare you
 
 Remember to refresh the OpenDota API client every now and then. To do it i'm using https://github.com/deepmap/oapi-codegen
 
-```oapi-codegen -package opendotaapi --config=types.cfg.yaml .\openapitools.json```
-```oapi-codegen -package opendotaapi --config=client.cfg.yaml .\openapitools.json```
+```
+oapi-codegen -package opendotaapi --config=types.cfg.yaml .\openapitools.json
+oapi-codegen -package opendotaapi --config=client.cfg.yaml .\openapitools.json
+```
 
 Direct [link](https://api.opendota.com/api) to Dota OpenApi could be used but the spec may have some errors depending on the version, in my case i downloaded the last one an corrected it manually.
