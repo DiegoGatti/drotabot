@@ -76,119 +76,48 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if m.Content == "!help" {
-		_, err := s.ChannelMessageSend(m.ChannelID, "How may i help?\n ```Use comands:\n\n!search\n!match\n!player```")
-		if err != nil {
-			fmt.Println(err)
-		}
-
+	switch {
+	case strings.Contains(m.Content, "!help"):
+		CmdHelp(s, m.ChannelID)
+	case strings.Contains(m.Content, "!search"):
+		CmdSearch(s, m.ChannelID)
+	default:
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is not recognized as a valid command. Try !help", m.Content))
 	}
 
 	if strings.Contains(m.Content, "!search") {
 
-		q := strings.TrimSpace(strings.Replace(m.Content, "!search", "", 1))
+	}
+}
 
-		c, err := opendotaapi.NewClientWithResponses("https://api.opendota.com/api")
-		if err != nil {
-			panic(err)
-		}
+func CmdHelp(s *discordgo.Session, ChId string) {
+	_, err := s.ChannelMessageSend(ChId, "How may i help?\n ```Use comands:\n\n!search\n!match\n!player```")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
 
-		var params = opendotaapi.GetSearchParams{
-			Q: q,
-		}
+func CmdSearch(s *discordgo.Session, ChId string) {
+	q := strings.TrimSpace(strings.Replace(m.Content, "!search", "", 1))
 
-		resp, err := c.GetSearchWithResponse(context.Background(), &params)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(resp.Body)
-
-		var respDecoded []opendotaapi.SearchResponse
-
-		json.Unmarshal(resp.Body, &respDecoded)
-
-		fmt.Println((respDecoded))
-
-		msg := fmt.Sprintf("found %d results.", len(respDecoded))
-
-		s.ChannelMessageSend(m.ChannelID, msg)
+	c, err := opendotaapi.NewClientWithResponses("https://api.opendota.com/api")
+	if err != nil {
+		panic(err)
 	}
 
-	if m.Content == "!gopher" {
-
-		//Call the KuteGo API and retrieve our cute Dr Who Gopher
-		response, err := http.Get(KuteGoAPIURL + "/gopher/" + "dr-who")
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer response.Body.Close()
-
-		if response.StatusCode == 200 {
-			_, err = s.ChannelFileSend(m.ChannelID, "dr-who.png", response.Body)
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
-			fmt.Println("Error: Can't get dr-who Gopher! :-(")
-		}
+	var params = opendotaapi.GetSearchParams{
+		Q: q,
 	}
 
-	if m.Content == "!random" {
-
-		//Call the KuteGo API and retrieve a random Gopher
-		response, err := http.Get(KuteGoAPIURL + "/gopher/random/")
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer response.Body.Close()
-
-		if response.StatusCode == 200 {
-			_, err = s.ChannelFileSend(m.ChannelID, "random-gopher.png", response.Body)
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
-			fmt.Println("Error: Can't get random Gopher! :-(")
-		}
+	resp, err := c.GetSearchWithResponse(context.Background(), &params)
+	if err != nil {
+		panic(err)
 	}
 
-	if m.Content == "!gophers" {
+	var respDecoded []opendotaapi.SearchResponse
+	json.Unmarshal(resp.Body, &respDecoded)
 
-		//Call the KuteGo API and display the list of available Gophers
-		response, err := http.Get(KuteGoAPIURL + "/gophers/")
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer response.Body.Close()
+	msg := fmt.Sprintf("found %d results.", len(respDecoded))
 
-		if response.StatusCode == 200 {
-			// Transform our response to a []byte
-			body, err := io.ReadAll(response.Body)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			// Put only needed informations of the JSON document in our array of Gopher
-			var data []Gopher
-			err = json.Unmarshal(body, &data)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			// Create a string with all of the Gopher's name and a blank line as separator
-			var gophers strings.Builder
-			for _, gopher := range data {
-				gophers.WriteString(gopher.Name + "\n")
-			}
-
-			// Send a text message with the list of Gophers
-			_, err = s.ChannelMessageSend(m.ChannelID, gophers.String())
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
-			fmt.Println("Error: Can't get list of Gophers! :-(")
-		}
-	}
+	s.ChannelMessageSend(ChId, msg)
 }
