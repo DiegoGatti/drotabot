@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-
-	"net/http"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,36 +15,51 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// Variables used for command line parameters
-var (
-	Token string
-)
-
-const KuteGoAPIURL = "https://kutego-api-xxxxx-ew.a.run.app"
 const OpenDotaAPIURL = "https://api.opendota.com/api/"
 
+// Variables used for command line parameters
+var (
+	GuildID        string
+	BotToken       string
+	RemoveCommands bool
+	dgs            *discordgo.Session
+)
+
+// Parse command-line flags.
 func init() {
-	flag.StringVar(&Token, "t", "", "Bot Token")
+	flag.StringVar(&GuildID, "gid", "", "GuildID")
+	flag.StringVar(&BotToken, "t", "", "Bot Token")
 	flag.Parse()
+}
+
+// Create a new Discord session using the provided bot token.
+func init() {
+	var err error
+
+	dgs, err = discordgo.New("Bot " + BotToken)
+	if err != nil {
+		log.Fatalf("error creating Discord session, %v", err)
+	}
+}
+
+func init() {
+	dgs.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
 }
 
 func main() {
 
-	// Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + Token)
-	if err != nil {
-		fmt.Println("error creating Discord session,", err)
-		return
-	}
-
 	// Register the messageCreate func as a callback for MessageCreate events.
-	dg.AddHandler(messageCreate)
+	dgs.AddHandler(messageCreate)
 
 	// In this example, we only care about receiving message events.
-	dg.Identify.Intents = discordgo.IntentsGuildMessages
+	dgs.Identify.Intents = discordgo.IntentsGuildMessages
 
 	// Open a websocket connection to Discord and begin listening.
-	err = dg.Open()
+	err := dgs.Open()
 	if err != nil {
 		fmt.Println("error opening connection,", err)
 		return
@@ -59,12 +72,14 @@ func main() {
 	<-sc
 
 	// Cleanly close down the Discord session.
-	dg.Close()
+	dgs.Close()
 }
 
-type Gopher struct {
-	Name string `json: "name"`
-}
+var (
+	integerOptionMinValue          = 1.0
+	dmPermission                   = false
+	defaultMemberPermissions int64 = discordgo.PermissionManageServer
+)
 
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the authenticated bot has access to.
@@ -80,7 +95,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case strings.Contains(m.Content, "!help"):
 		CmdHelp(s, m.ChannelID)
 	case strings.Contains(m.Content, "!search"):
-		CmdSearch(s, m.ChannelID)
+		CmdSearch(s, m.ChannelID, strings.TrimSpace(strings.Replace(m.Content, "!search", "", 1)))
 	default:
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is not recognized as a valid command. Try !help", m.Content))
 	}
@@ -97,9 +112,7 @@ func CmdHelp(s *discordgo.Session, ChId string) {
 	}
 }
 
-func CmdSearch(s *discordgo.Session, ChId string) {
-	q := strings.TrimSpace(strings.Replace(m.Content, "!search", "", 1))
-
+func CmdSearch(s *discordgo.Session, ChId string, q string) {
 	c, err := opendotaapi.NewClientWithResponses("https://api.opendota.com/api")
 	if err != nil {
 		panic(err)
