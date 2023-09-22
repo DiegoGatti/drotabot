@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/antzucaro/matchr"
 	"github.com/bwmarrin/discordgo"
 
 	opendotaapi "github.com/DiegoGatti/drotabot/OpenDotaApi"
@@ -79,9 +81,26 @@ func CmdSearch(q string) string {
 	}
 
 	var respDecoded []opendotaapi.SearchResponse
+	var results = make(map[string]int)
+
 	json.Unmarshal(resp.Body, &respDecoded)
 
-	msg := fmt.Sprintf("found %d results.", len(respDecoded))
+	for _, e := range respDecoded {
 
-	return msg
+		d := matchr.Levenshtein(*e.Personaname, q)
+
+		if d <= 2 {
+			results[*e.Personaname] = *e.AccountId
+		}
+
+	}
+
+	msgh := fmt.Sprintf("found %d results.", len(results))
+	var msg string
+
+	for k, v := range results {
+		msg += fmt.Sprintf("\n Account Id: %d Name: %s", v, k)
+	}
+
+	return msgh + fmt.Sprintf("```%s```", msg)
 }
